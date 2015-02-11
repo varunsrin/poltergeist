@@ -1,19 +1,32 @@
 #!/usr/bin/python
 
-import sys
-from pydub import AudioSegment
+import argparse
+import os.path as path
+from pydub import AudioSegment, pyaudioop
 
-path = ''
-if sys.argv[1] == "-i":
-  path = sys.argv[2]
+output_fmt = 'wav'
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", action="store", dest="input_path")
+parser.add_argument("-o", action="store", dest="output_path")
+args = parser.parse_args()
+
+if args.input_path == None:
+  raise Exception("no source file provided with -i argument")
+
+if args.output_path == None:
+  input_root, input_ext = path.splitext(args.input_path)
+  output_path = input_root + "." + output_fmt
 else:
-  raise Exception("no source file provided in the format main.py -i <path to file>")
-
-destination = path + ".mp3"
+  output_path = args.output_path
 
 try:
-  AudioSegment.from_file(path).export(destination, format='mp3')
-except IOError:
-  print "Source file " + path + " not found"
-  print IOError
+  source = AudioSegment.from_file(args.input_path)
+  inverted =  source._spawn(data=pyaudioop.mul(source._data,
+                                               source.sample_width,
+                                               -1.0))
+  inverted.export(output_path, format=output_fmt)
 
+except IOError:
+  print "Source file " + args.input_path + " could not be opened"
+  print IOError
